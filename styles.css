@@ -1,0 +1,9 @@
+.stage-panel__code {
+    display: block;
+    margin-top: 8px;
+    width: 100%;
+}
+.stage-panel__btn {
+    margin-top: 8px;
+    margin-right: 8px;
+}
