@@ -50,33 +50,33 @@ export class NoteStageView extends ItemView {
         const refreshBtn = wrap.createEl("button", { cls: "stage-panel__btn", text: "Refresh" })
         const runBtn = wrap.createEl("button", { cls: "stage-panel__btn", text: "Run" });
         inputStage.addEventListener("change", async (ev) => {
-            codeBox.setText("")
+            codeBox.value = ""
             const file = this._plugin.currentFile
             if ((ev.target as HTMLInputElement)?.checked && file) {
                 try {
                     const fileList = await this.getFileList(app, file.path, false)
-                    codeBox.setText(fileList.join("\n"))
+                    codeBox.value = fileList.join("\n")
                 } catch (ex) {
-                    codeBox.setText(ex)
+                    codeBox.value = ex
                 }
             }
         })
         inputUnstage.addEventListener("change", async (ev) => {
-            codeBox.setText("")
+            codeBox.value = ""
             const file = this._plugin.currentFile
             if ((ev.target as HTMLInputElement)?.checked && file) {
                 try {
                     const fileList = await this.getFileList(app, file.path, true)
-                    codeBox.setText(fileList.join("\n"))
+                    codeBox.value = fileList.join("\n")
                 } catch (ex) {
-                    codeBox.setText(ex)
+                    codeBox.value = ex
                 }
             }
         })
         runBtn.addEventListener("click", async () => {
             runBtn.disabled = true
             try {
-                const rawFileList = codeBox.getText().trim()
+                const rawFileList = codeBox.value.trim()
                 if (rawFileList == "")
                     new Notice(`Nothing to ${inputStage.checked ? "stage" : "unstage"}`)
                 else{
@@ -95,25 +95,25 @@ export class NoteStageView extends ItemView {
             }
         })
         refreshBtn.addEventListener("click", async () => {
-            codeBox.setText("")
+            codeBox.value = ""
             const file = this._plugin.currentFile
             if (file) {
                 try {
                     const fileList = await this.getFileList(app, file.path, inputUnstage.checked)
-                    codeBox.setText(fileList.join("\n"))
+                    codeBox.value = fileList.join("\n")
                 } catch (ex) {
-                    codeBox.setText(ex)
+                    codeBox.value = ex
                 }
             }
         })
         this._onFileOpen = async (file) => {
-            codeBox.setText("")
+            codeBox.value = ""
             if (file) {
                 try {
                     const fileList = await this.getFileList(app, file.path, inputUnstage.checked)
-                    codeBox.setText(fileList.join("\n"))
+                    codeBox.value = fileList.join("\n")
                 } catch (ex) {
-                    codeBox.setText(ex)
+                    codeBox.value = ex
                 }
             }
         }
