@@ -3,7 +3,7 @@
 	"name": "Note Stager",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
+	"description": "Detects the current Obsidian note and its attachments, then generates git add commands for one-click staging.",
 	"author": "HNIdesu",
 	"authorUrl": "https://github.com/HNIdesu",
 	"fundingUrl": "",
