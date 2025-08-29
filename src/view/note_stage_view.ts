@@ -1,11 +1,14 @@
 import { App, ItemView, Notice, TFile, WorkspaceLeaf } from 'obsidian';
 import { exec } from "child_process";
+import NoteStagePlugin from 'main';
 
 export const VIEW_TYPE_NOTE_STAGE = 'note-stage-view';
 
 export class NoteStageView extends ItemView {
-    constructor(leaf: WorkspaceLeaf) {
-        super(leaf);
+    private _plugin: NoteStagePlugin
+    constructor(leaf: WorkspaceLeaf,plugin: NoteStagePlugin) {
+        super(leaf)
+        this._plugin = plugin
     }
     private _onFileOpen: ((file: TFile | null) => any) | null = null
 
@@ -17,7 +20,6 @@ export class NoteStageView extends ItemView {
         return 'Note stage view';
     }
 
-    private _currentFile: TFile | null = null
     async onOpen() {
         const app = this.app
         const container = this.contentEl;
@@ -49,7 +51,7 @@ export class NoteStageView extends ItemView {
         const runBtn = wrap.createEl("button", { cls: "stage-panel__btn", text: "Run" });
         inputStage.addEventListener("change", async (ev) => {
             codeBox.setText("")
-            const file = this._currentFile
+            const file = this._plugin.currentFile
             if ((ev.target as HTMLInputElement)?.checked && file) {
                 try {
                     const fileList = await this.getFileList(app, file.path, false)
@@ -61,7 +63,7 @@ export class NoteStageView extends ItemView {
         })
         inputUnstage.addEventListener("change", async (ev) => {
             codeBox.setText("")
-            const file = this._currentFile
+            const file = this._plugin.currentFile
             if ((ev.target as HTMLInputElement)?.checked && file) {
                 try {
                     const fileList = await this.getFileList(app, file.path, true)
@@ -94,7 +96,7 @@ export class NoteStageView extends ItemView {
         })
         refreshBtn.addEventListener("click", async () => {
             codeBox.setText("")
-            const file = this._currentFile
+            const file = this._plugin.currentFile
             if (file) {
                 try {
                     const fileList = await this.getFileList(app, file.path, inputUnstage.checked)
@@ -107,7 +109,6 @@ export class NoteStageView extends ItemView {
         this._onFileOpen = async (file) => {
             codeBox.setText("")
             if (file) {
-                this._currentFile = file
                 try {
                     const fileList = await this.getFileList(app, file.path, inputUnstage.checked)
                     codeBox.setText(fileList.join("\n"))
@@ -117,6 +118,7 @@ export class NoteStageView extends ItemView {
             }
         }
         app.workspace.on("file-open", this._onFileOpen)
+        refreshBtn.click()
     }
 
     private async getFileList(app: App, path: string, unstage: boolean): Promise<string[]> {
