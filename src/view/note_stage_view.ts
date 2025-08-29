@@ -1,5 +1,5 @@
 import { App, ItemView, Notice, TFile, WorkspaceLeaf } from 'obsidian';
-import { exec, ExecException } from "child_process";
+import { exec } from "child_process";
 
 export const VIEW_TYPE_NOTE_STAGE = 'note-stage-view';
 
@@ -18,7 +18,6 @@ export class NoteStageView extends ItemView {
     }
 
     private _currentFile: TFile | null = null
-
     async onOpen() {
         const app = this.app
         const container = this.contentEl;
@@ -52,22 +51,39 @@ export class NoteStageView extends ItemView {
             codeBox.setText("")
             const file = this._currentFile
             if ((ev.target as HTMLInputElement)?.checked && file) {
-                this.generateStageCoammnd(app, file.path, false).then(it => codeBox.setText(it)).catch(ex => codeBox.setText(ex))
+                try {
+                    const fileList = await this.getFileList(app, file.path, false)
+                    codeBox.setText(fileList.join("\n"))
+                } catch (ex) {
+                    codeBox.setText(ex)
+                }
             }
         })
         inputUnstage.addEventListener("change", async (ev) => {
             codeBox.setText("")
             const file = this._currentFile
             if ((ev.target as HTMLInputElement)?.checked && file) {
-                this.generateStageCoammnd(app, file.path, true).then(it => codeBox.setText(it)).catch(ex => codeBox.setText(ex))
+                try {
+                    const fileList = await this.getFileList(app, file.path, true)
+                    codeBox.setText(fileList.join("\n"))
+                } catch (ex) {
+                    codeBox.setText(ex)
+                }
             }
         })
         runBtn.addEventListener("click", async () => {
             runBtn.disabled = true
             try {
-                const command = codeBox.getText().trim()
-                if (command != "") {
-                    await this.executeCommand(command, (app.vault.adapter as any).basePath)
+                const rawFileList = codeBox.getText().trim()
+                if (rawFileList == "")
+                    new Notice(`Nothing to ${inputStage.checked ? "stage" : "unstage"}`)
+                else{
+                    const fileList = rawFileList.split("\n").filter(it=>it.trim()!="")
+                    const batchSize = 50
+                    for (let i = 0; i < fileList.length; i += batchSize) {
+                        const command = "git " + (inputUnstage.checked ? "restore --staged " : "add ") + fileList.slice(i, i + batchSize).map(it=>`"${it.trim()}"`).join(" ")
+                        await this.executeCommand(command, (app.vault.adapter as any).basePath)
+                    }
                     new Notice(`Files have been ${inputStage.checked ? "staged" : "unstaged"}`)
                 }
             } catch (ex) {
@@ -76,27 +92,37 @@ export class NoteStageView extends ItemView {
                 runBtn.disabled = false
             }
         })
-        refreshBtn.addEventListener("click", async ()=> {
+        refreshBtn.addEventListener("click", async () => {
             codeBox.setText("")
             const file = this._currentFile
             if (file) {
-                this.generateStageCoammnd(app, file.path, inputUnstage.checked).then(it => codeBox.setText(it)).catch(ex => codeBox.setText(ex))
+                try {
+                    const fileList = await this.getFileList(app, file.path, inputUnstage.checked)
+                    codeBox.setText(fileList.join("\n"))
+                } catch (ex) {
+                    codeBox.setText(ex)
+                }
             }
         })
         this._onFileOpen = async (file) => {
             codeBox.setText("")
             if (file) {
                 this._currentFile = file
-                this.generateStageCoammnd(app, file.path, inputUnstage.checked).then(it => codeBox.setText(it)).catch(ex => codeBox.setText(ex))
+                try {
+                    const fileList = await this.getFileList(app, file.path, inputUnstage.checked)
+                    codeBox.setText(fileList.join("\n"))
+                } catch (ex) {
+                    codeBox.setText(ex)
+                }
             }
         }
         app.workspace.on("file-open", this._onFileOpen)
     }
 
-    private async generateStageCoammnd(app: App, path: string, unstage: boolean): Promise<string> {
+    private async getFileList(app: App, path: string, unstage: boolean): Promise<string[]> {
         const resolvedLinks = app.metadataCache.resolvedLinks
         if (!resolvedLinks[path]) {
-            await new Promise<void>((resolve, reject) => {
+            await new Promise<void>((resolve) => {
                 const callback = () => {
                     app.metadataCache.off("resolved", callback)
                     resolve()
@@ -104,23 +130,20 @@ export class NoteStageView extends ItemView {
                 app.metadataCache.on("resolved", callback)
             })
         }
-        const prefix = "git " + (unstage ? "restore --staged " : "add ")
-        const attachmentList = [
-            `\"${path}\"`
-        ]
+        const attachmentList = [path]
         const stagedFiles = await new Promise<Set<string>>((resolve, reject) => {
             exec("git diff --name-only --cached", {
                 cwd: (app.vault.adapter as any).basePath
-            },(ex,stdout)=>{
+            }, (ex, stdout) => {
                 if (ex != null) reject(ex)
                 else resolve(new Set(stdout.trim().split("\n")))
             })
         })
         for (const link in resolvedLinks[path]) {
             if (link.startsWith("attachments"))
-                attachmentList.push(`\"${link}\"`)
+                attachmentList.push(link)
         }
-        return prefix + attachmentList.filter(link=>!(unstage && !stagedFiles.has(link))).join(" ")
+        return attachmentList.filter(link => !(unstage && !stagedFiles.has(link)))
     }
 
     private executeCommand(cmd: string, cwd?: string): Promise<void> {
