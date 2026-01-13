@@ -7,3 +7,12 @@
     margin-top: 8px;
     margin-right: 8px;
 }
+.stage-panel__label {
+    display: flex;
+    align-items: center;
+}
+.stage-panel__radios {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
