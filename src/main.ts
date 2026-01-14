@@ -1,12 +1,13 @@
 import { Plugin, TFile, WorkspaceLeaf } from 'obsidian';
 import { NoteStageView, VIEW_TYPE_NOTE_STAGE } from './view/note_stage_view';
+import { NoteStagerSettingView } from 'view/note_stager_setting_view';
 
 interface NoteStagePluginSettings {
-	mySetting: string;
+	gitExecutable: string;
 }
 
 const DEFAULT_SETTINGS: NoteStagePluginSettings = {
-	mySetting: 'default'
+	gitExecutable: ''
 }
 
 export default class NoteStagePlugin extends Plugin {
@@ -26,6 +27,7 @@ export default class NoteStagePlugin extends Plugin {
 		this._onFileOpen = (file) => {
 			this.currentFile = file
 		}
+		this.addSettingTab(new NoteStagerSettingView(this.app,this))
 		this.app.workspace.on("file-open", this._onFileOpen)
 	}
 

@@ -25,7 +25,6 @@ export class NoteStageView extends ItemView {
         const container = this.contentEl;
         container.empty();
         const wrap = container.createDiv({ cls: "stage-panel" });
-
         const radios = wrap.createDiv({ cls: "stage-panel__radios" });
 
         const labelStage = radios.createEl("label", { cls: "stage-panel__label" });
@@ -80,10 +79,11 @@ export class NoteStageView extends ItemView {
                 if (rawFileList == "")
                     new Notice(`Nothing to ${inputStage.checked ? "stage" : "unstage"}`)
                 else{
+                    const gitExecutable = "\"" + (this._plugin.settings.gitExecutable || "git") + "\""
                     const fileList = rawFileList.split("\n").filter(it=>it.trim()!="")
                     const batchSize = 50
                     for (let i = 0; i < fileList.length; i += batchSize) {
-                        const command = "git " + (inputUnstage.checked ? "restore --staged " : "add ") + fileList.slice(i, i + batchSize).map(it=>`"${it.trim()}"`).join(" ")
+                        const command = gitExecutable + (inputUnstage.checked ? " restore --staged " : " add ") + fileList.slice(i, i + batchSize).map(it=>`"${it.trim()}"`).join(" ")
                         await this.executeCommand(command, (app.vault.adapter as any).basePath)
                     }
                     new Notice(`Files have been ${inputStage.checked ? "staged" : "unstaged"}`)
@@ -134,7 +134,8 @@ export class NoteStageView extends ItemView {
         }
         const attachmentList = [path]
         const stagedFiles = await new Promise<Set<string>>((resolve, reject) => {
-            exec("git diff --name-only --cached", {
+            const gitExecutable = "\"" + (this._plugin.settings.gitExecutable || "git") + "\""
+            exec(gitExecutable +" diff --name-only --cached", {
                 cwd: (app.vault.adapter as any).basePath
             }, (ex, stdout) => {
                 if (ex != null) reject(ex)
