@@ -1,6 +1,9 @@
 import { App, ItemView, Notice, TFile, WorkspaceLeaf } from 'obsidian';
 import { exec } from "child_process";
 import NoteStagePlugin from 'main';
+import * as dotenv from "dotenv"
+import * as fs from "fs"
+import * as path from "path"
 
 export const VIEW_TYPE_NOTE_STAGE = 'note-stage-view';
 
@@ -150,9 +153,19 @@ export class NoteStageView extends ItemView {
     }
 
     private executeCommand(cmd: string, cwd?: string): Promise<void> {
+        const envFilePath = path.resolve((this._plugin.app.vault.adapter as any).basePath,this._plugin.manifest.dir!, ".env")
+        let env: any
+        if (fs.existsSync(envFilePath)) {
+            env = dotenv.parse(fs.readFileSync(envFilePath,{
+                encoding: "utf-8"
+            }))
+            console.debug("Loaded env from .env file:", env)
+        }else
+            env = process.env
         return new Promise((resolve, reject) => {
             exec(cmd, {
-                cwd: cwd
+                cwd,
+                env
             }, (err) => {
                 if (err != null) reject(err)
                 else resolve()
