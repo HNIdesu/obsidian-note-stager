@@ -125,17 +125,9 @@ export class NoteStageView extends ItemView {
     }
 
     private async getFileList(app: App, path: string, unstage: boolean): Promise<string[]> {
-        const resolvedLinks = app.metadataCache.resolvedLinks
-        if (!resolvedLinks[path]) {
-            await new Promise<void>((resolve) => {
-                const callback = () => {
-                    app.metadataCache.off("resolved", callback)
-                    resolve()
-                }
-                app.metadataCache.on("resolved", callback)
-            })
-        }
-        const attachmentList = [path]
+        const fileList = [path]
+        for(const embed of app.metadataCache.getCache(path)?.embeds ?? [])
+            fileList.push(embed.link)
         const stagedFiles = await new Promise<Set<string>>((resolve, reject) => {
             const gitExecutable = "\"" + (this._plugin.settings.gitExecutable || "git") + "\""
             exec(gitExecutable +" diff --name-only --cached", {
@@ -145,11 +137,7 @@ export class NoteStageView extends ItemView {
                 else resolve(new Set(stdout.trim().split("\n")))
             })
         })
-        for (const link in resolvedLinks[path]) {
-            if (link.startsWith("attachments"))
-                attachmentList.push(link)
-        }
-        return attachmentList.filter(link => !(unstage && !stagedFiles.has(link)))
+        return fileList.filter(link => !(unstage && !stagedFiles.has(link)))
     }
 
     private executeCommand(cmd: string, cwd?: string): Promise<void> {
