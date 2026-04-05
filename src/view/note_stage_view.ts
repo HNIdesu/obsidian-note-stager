@@ -125,9 +125,9 @@ export class NoteStageView extends ItemView {
     }
 
     private async getFileList(app: App, path: string, unstage: boolean): Promise<string[]> {
-        const fileList = [path]
+        const fileList = new Set<string>([path])
         for(const embed of app.metadataCache.getCache(path)?.embeds ?? [])
-            fileList.push(embed.link)
+            fileList.add(embed.link)
         const stagedFiles = await new Promise<Set<string>>((resolve, reject) => {
             const gitExecutable = "\"" + (this._plugin.settings.gitExecutable || "git") + "\""
             exec(gitExecutable +" diff --name-only --cached", {
@@ -137,7 +137,7 @@ export class NoteStageView extends ItemView {
                 else resolve(new Set(stdout.trim().split("\n")))
             })
         })
-        return fileList.filter(link => !(unstage && !stagedFiles.has(link)))
+        return Array.from(fileList).filter(link => !(unstage && !stagedFiles.has(link)))
     }
 
     private executeCommand(cmd: string, cwd?: string): Promise<void> {
